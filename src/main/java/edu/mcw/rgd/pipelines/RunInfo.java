@@ -1,0 +1,59 @@
+package edu.mcw.rgd.pipelines;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: mtutaj
+ * Date: 11/18/13
+ * Time: 10:22 AM
+ * <p>
+ * information to compute gene loci information for a species and assembly
+ */
+public class RunInfo {
+
+    private int mapKey;
+    private String dbSnpBuild;
+    private int speciesTypeKey;
+    private boolean runIt;
+    private String variantTable;
+
+
+    public int getMapKey() {
+        return mapKey;
+    }
+
+    public void setMapKey(int mapKey) {
+        this.mapKey = mapKey;
+    }
+
+    public String getDbSnpBuild() {
+        return dbSnpBuild;
+    }
+
+    public void setDbSnpBuild(String dbSnpBuild) {
+        this.dbSnpBuild = dbSnpBuild;
+    }
+
+    public int getSpeciesTypeKey() {
+        return speciesTypeKey;
+    }
+
+    public void setSpeciesTypeKey(int speciesTypeKey) {
+        this.speciesTypeKey = speciesTypeKey;
+    }
+
+    public boolean isRunIt() {
+        return runIt;
+    }
+
+    public void setRunIt(boolean runIt) {
+        this.runIt = runIt;
+    }
+
+    public void setVariantTable(String variantTable) {
+        this.variantTable = variantTable;
+    }
+
+    public String getVariantTable() {
+        return variantTable;
+    }
+}
