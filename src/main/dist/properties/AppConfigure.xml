@@ -2,7 +2,7 @@
 
 <beans>
     <bean id="importer" class="edu.mcw.rgd.pipelines.GeneLociPipeline" >
-        <property name="version" value="Gene Loci Pipeline v. 1.3.9 (May 5 2019)" />
+        <property name="version" value="Gene Loci Pipeline   build Sep 18, 2019" />
         <property name="runList">
             <list >
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT assembly 6.0 -->

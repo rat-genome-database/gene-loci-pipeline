@@ -1,11 +1,8 @@
 package edu.mcw.rgd.pipelines;
 
 /**
- * Created by IntelliJ IDEA.
- * User: mtutaj
- * Date: 11/18/13
- * Time: 10:22 AM
- * <p>
+ * @author mtutaj
+ * since 11/18/13
  * information to compute gene loci information for a species and assembly
  */
 public class RunInfo {

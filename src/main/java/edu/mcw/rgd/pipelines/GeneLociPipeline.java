@@ -4,26 +4,25 @@ import edu.mcw.rgd.dao.DataSourceFactory;
 import edu.mcw.rgd.dao.impl.MapDAO;
 import edu.mcw.rgd.datamodel.SpeciesType;
 import edu.mcw.rgd.process.Utils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.jdbc.object.BatchSqlUpdate;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: jdepons
- * Date: 4/26/12
- * Time: 12:55 PM
+ * @author jdepons
+ * @since 4/26/12
  */
 public class GeneLociPipeline {
 
-    static Log log = LogFactory.getLog("core");
+    Logger log = Logger.getLogger("core");
 
     private String version;
 
@@ -49,6 +48,10 @@ public class GeneLociPipeline {
         log.info(getVersion());
         long time1 = System.currentTimeMillis();
 
+        log.info("   "+dao.getConnectionInfo());
+        SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        log.info("   started at "+sdt.format(new Date(time1)));
+
         for( RunInfo info: this.getRunList() ) {
             if( info.isRunIt() ) {
                 if( mapKey==0 || info.getMapKey()==mapKey ) {
@@ -62,6 +65,9 @@ public class GeneLociPipeline {
     }
 
     public void run(RunInfo info) throws Exception {
+
+        String speciesName = SpeciesType.getCommonName(info.getSpeciesTypeKey());
+        log.info(speciesName+" START   map_key="+info.getMapKey());
 
         initLociForVariants(info.getMapKey(), info.getVariantTable());
 
@@ -169,7 +175,8 @@ public class GeneLociPipeline {
         }
 
         long time2 = System.currentTimeMillis();
-        log.info("Finished import "+"; "+Utils.formatElapsedTime(time1, time2));
+        log.info(speciesName+" Finished import "+"; "+Utils.formatElapsedTime(time1, time2));
+        log.info("");
     }
 
     public List<GeneData> processChromosome(String chr, int mapKey, int speciesType) throws Exception {
@@ -203,7 +210,7 @@ public class GeneLociPipeline {
             }
         }
         long time2 = System.currentTimeMillis();
-        log.debug("   loaded gene positions on chr "+chr+"; "+Utils.formatElapsedTime(time1, time2));
+        log.info("   loaded gene positions on chr "+chr+"; "+Utils.formatElapsedTime(time1, time2));
 
         return geneDatas;
     }
@@ -325,7 +332,7 @@ public class GeneLociPipeline {
     void initLociForVariants(int mapKey, String variantTable) throws Exception {
 
         long time0 = System.currentTimeMillis();
-        System.out.println("  initializing loci for variants");
+        log.info("  initializing loci for variants");
 
         String sql = "INSERT INTO gene_loci (map_key,chromosome,pos) VALUES(?,?,?)";
 
@@ -353,12 +360,12 @@ public class GeneLociPipeline {
 
         dao.executeBatch(su);
 
-        System.out.println("  done initializing loci for variants: "+cnt+", elapsed "+Utils.formatElapsedTime(time0, System.currentTimeMillis()));
+        log.info("  done initializing loci for variants: "+cnt+", elapsed "+Utils.formatElapsedTime(time0, System.currentTimeMillis()));
     }
 
     void initLociForDbSnpVariants(int mapKey, String dbSnpBuild) throws Exception {
 
-        System.out.println("initializing loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
+        log.info("initializing loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
 
         String sql =
         "INSERT INTO gene_loci (map_key,chromosome,pos) "+
@@ -384,13 +391,13 @@ public class GeneLociPipeline {
             rowCount++;
 
             if( rowCount%100000==1 )
-                System.out.println("init_loci "+rowCount);
+                log.info("init_loci "+rowCount);
         }
         conn.close();
 
         dao.executeBatch(su);
 
-        System.out.println(rowCount+" inserted loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
+        log.info(rowCount+" inserted loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
     }
 
     void removeDuplicateLoci(int mapKey) throws Exception {
@@ -414,7 +421,7 @@ public class GeneLociPipeline {
         ps.setInt(1, mapKey);
         ps.setInt(2, mapKey);
         int rowCount = ps.executeUpdate();
-        System.out.println("removeDuplicateLoci for map_key=" + mapKey+" rows:"+rowCount);
+        log.info("removeDuplicateLoci for map_key=" + mapKey+" rows:"+rowCount);
         conn.close();
     }
 

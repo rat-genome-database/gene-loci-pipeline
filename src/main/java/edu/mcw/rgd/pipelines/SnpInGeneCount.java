@@ -9,11 +9,8 @@ import java.sql.ResultSet;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: mtutaj
- * Date: 2/6/13
- * Time: 11:12 AM
- * <p>
+ * @author mtutaj
+ * @since 2/6/13
  * a module to print out nonsynonymous exonic snps for specified samples
  */
 public class SnpInGeneCount {

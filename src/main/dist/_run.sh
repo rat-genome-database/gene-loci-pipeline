@@ -13,7 +13,7 @@ if [ "$SERVER" == "REED" ]; then
     ELIST="mtutaj@mcw.edu"
 fi
 
-java -Dspring.config=$APPDIR/../properties/default_db.xml \
+java -Dspring.config=$APPDIR/../properties/default_db2.xml \
     -Dlog4j.configuration=file://$APPDIR/properties/log4j.properties \
     -jar lib/$APPNAME.jar "$@" > cron.log 2>&1
 
