@@ -47,6 +47,13 @@
                     <property name="runIt" value="true"/>
                     <property name="variantTable" value="variant_clinvar" />
                 </bean>
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG -->
+                    <property name="mapKey" value="631"/>
+                    <property name="dbSnpBuild" value="dbSnp151"/>
+                    <property name="speciesTypeKey" value="6"/>
+                    <property name="runIt" value="true"/>
+                    <property name="variantTable" value="variant_dog" />
+                </bean>
 				<!-- BONOBO 
                 <bean class="edu.mcw.rgd.pipelines.RunInfo">
                     <property name="mapKey" value="511"/>
