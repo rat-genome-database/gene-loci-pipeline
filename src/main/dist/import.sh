@@ -21,4 +21,4 @@ fi
 
 ./_run.sh --mapKey=$MAPKEY
 
-mailx -s "[$SERVER] GeneLoci pipeline" $EMAIL_LIST < $HOMEDIR/logs/summary.log
+mailx -s "[$SERVER] GeneLoci pipeline" $EMAIL_LIST < $APPHOME/logs/summary.log
