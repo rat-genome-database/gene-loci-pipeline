@@ -1,3 +1,6 @@
+May 10, 2020
+  updated jar references
+
 Jan 28, 2020
   fixed import.sh script
 
