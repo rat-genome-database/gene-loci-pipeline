@@ -210,7 +210,7 @@ public class GeneLociPipeline {
             }
         }
         long time2 = System.currentTimeMillis();
-        log.info("   loaded gene positions on chr "+chr+"; "+Utils.formatElapsedTime(time1, time2));
+        log.debug("   loaded gene positions on chr "+chr+"; "+Utils.formatElapsedTime(time1, time2));
 
         return geneDatas;
     }

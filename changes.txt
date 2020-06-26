@@ -1,3 +1,6 @@
+Jun 26, 2020
+  reduced verbosity in summary email
+
 May 10, 2020
   updated jar references
 
