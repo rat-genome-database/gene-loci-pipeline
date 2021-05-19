@@ -342,11 +342,17 @@ public class GeneLociPipeline {
 
         Connection conn = DataSourceFactory.getInstance().getCarpeNovoDataSource().getConnection();
 
+        // query for old variant table structure
+        //  "SELECT chromosome,start_pos FROM "+variantTable+
+        //  "  WHERE sample_id IN(SELECT sample_id FROM sample WHERE patient_id IN(SELECT patient_id FROM patient WHERE map_key=?)) "+
+        //  "MINUS "+
+        //  "SELECT chromosome,pos FROM GENE_LOCI WHERE map_key=?");
+
         PreparedStatement ps = conn.prepareStatement(
-            "SELECT chromosome,start_pos FROM "+variantTable+
-            "  WHERE sample_id IN(SELECT sample_id FROM sample WHERE patient_id IN(SELECT patient_id FROM patient WHERE map_key=?)) "+
+            "SELECT chromosome,start_pos FROM variant_map_data WHERE map_key=? "+
             "MINUS "+
             "SELECT chromosome,pos FROM GENE_LOCI WHERE map_key=?");
+
         ps.setInt(1, mapKey);
         ps.setInt(2, mapKey);
         ResultSet rs = ps.executeQuery();

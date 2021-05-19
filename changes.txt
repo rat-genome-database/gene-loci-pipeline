@@ -1,3 +1,6 @@
+May 19, 2021
+  updated sql queries to new variant table structure
+
 Jun 26, 2020
   reduced verbosity in summary email
 
