@@ -1,3 +1,6 @@
+Jul 21, 2021
+  added rat assembly 7.2
+
 May 19, 2021
   updated sql queries to new variant table structure
 
