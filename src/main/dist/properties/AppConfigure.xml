@@ -2,7 +2,7 @@
 
 <beans>
     <bean id="importer" class="edu.mcw.rgd.pipelines.GeneLociPipeline" >
-        <property name="version" value="Gene Loci Pipeline   -- build Jul 27, 2021" />
+        <property name="version" value="Gene Loci Pipeline   -- build Mar 29, 2022" />
         <property name="runList">
             <list >
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT assembly 7.2 -->
@@ -10,56 +10,48 @@
                     <property name="dbSnpBuild" value=""/>
                     <property name="speciesTypeKey" value="3"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT assembly 6.0 -->
                     <property name="mapKey" value="360"/>
                     <property name="dbSnpBuild" value="dbSnp146"/>
                     <property name="speciesTypeKey" value="3"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT assembly 5.0 -->
                     <property name="mapKey" value="70"/>
                     <property name="dbSnpBuild" value="dbSnp138"/>
                     <property name="speciesTypeKey" value="3"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT assembly 3.4 -->
                     <property name="mapKey" value="60"/>
                     <property name="dbSnpBuild" value="dbSnp136"/>
                     <property name="speciesTypeKey" value="3"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- MOUSE -->
                     <property name="mapKey" value="18"/>
                     <property name="dbSnpBuild" value="dbSnp131"/>
                     <property name="speciesTypeKey" value="2"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN -->
                     <property name="mapKey" value="17"/>
                     <property name="dbSnpBuild" value="dbSnp138"/>
                     <property name="speciesTypeKey" value="1"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant_clinvar" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN -->
                     <property name="mapKey" value="38"/>
                     <property name="dbSnpBuild" value="dbSnp147"/>
                     <property name="speciesTypeKey" value="1"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant_clinvar" />
                 </bean>
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG -->
                     <property name="mapKey" value="631"/>
                     <property name="dbSnpBuild" value="dbSnp151"/>
                     <property name="speciesTypeKey" value="6"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant_dog" />
                 </bean>
 				<!-- BONOBO 
                 <bean class="edu.mcw.rgd.pipelines.RunInfo">
@@ -67,7 +59,6 @@
                     <property name="dbSnpBuild" value="dbSnp146"/>
                     <property name="speciesTypeKey" value="5"/>
                     <property name="runIt" value="true"/>
-                    <property name="variantTable" value="variant_human" />
                 </bean>
 				-->
             </list>

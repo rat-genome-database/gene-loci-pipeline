@@ -69,7 +69,7 @@ public class GeneLociPipeline {
         String speciesName = SpeciesType.getCommonName(info.getSpeciesTypeKey());
         log.info(speciesName+" START   map_key="+info.getMapKey());
 
-        initLociForVariants(info.getMapKey(), info.getVariantTable());
+        initLociForVariants(info.getMapKey());
 
         // we do not create positions in GENE_LOCI fro DB_SNP for human, because that will be immensely huge
         if( info.getSpeciesTypeKey()==SpeciesType.RAT ) {
@@ -329,7 +329,7 @@ public class GeneLociPipeline {
         writeLociInBulk(loci2);
     }
 
-    void initLociForVariants(int mapKey, String variantTable) throws Exception {
+    void initLociForVariants(int mapKey) throws Exception {
 
         long time0 = System.currentTimeMillis();
         log.info("  initializing loci for variants");

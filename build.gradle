@@ -21,11 +21,11 @@ repositories {
 
 dependencies {
     compile 'org.apache.commons:commons-dbcp2:2.7.0'
-    compile 'commons-net:commons-net:3.6'
+    compile 'commons-net:commons-net:3.7'
     compile 'log4j:log4j:1.2.17'
-    compile 'com.oracle.ojdbc:ojdbc8:19.3.0.0'
-    compile 'org.springframework:spring-beans:5.1.6.RELEASE'
-    compile 'org.springframework:spring-jdbc:5.1.6.RELEASE'
+    compile 'com.oracle.database.jdbc:ojdbc8:19.6.0.0'
+    compile 'org.springframework:spring-beans:5.1.7.RELEASE'
+    compile 'org.springframework:spring-jdbc:5.1.7.RELEASE'
 
     compile fileTree(dir: 'lib', include: '*.jar')
 }

@@ -1,3 +1,6 @@
+Mar 29, 2022
+  removed obsolete property 'variantTable'
+
 Jul 21, 2021
   added rat assembly 7.2
 

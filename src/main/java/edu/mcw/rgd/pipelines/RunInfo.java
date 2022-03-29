@@ -11,7 +11,6 @@ public class RunInfo {
     private String dbSnpBuild;
     private int speciesTypeKey;
     private boolean runIt;
-    private String variantTable;
 
 
     public int getMapKey() {
@@ -44,13 +43,5 @@ public class RunInfo {
 
     public void setRunIt(boolean runIt) {
         this.runIt = runIt;
-    }
-
-    public void setVariantTable(String variantTable) {
-        this.variantTable = variantTable;
-    }
-
-    public String getVariantTable() {
-        return variantTable;
     }
 }
