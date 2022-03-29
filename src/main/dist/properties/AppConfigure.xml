@@ -29,38 +29,65 @@
                     <property name="speciesTypeKey" value="3"/>
                     <property name="runIt" value="true"/>
                 </bean>
-                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- MOUSE -->
+
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- MOUSE GRCm37 -->
                     <property name="mapKey" value="18"/>
                     <property name="dbSnpBuild" value="dbSnp131"/>
                     <property name="speciesTypeKey" value="2"/>
                     <property name="runIt" value="true"/>
                 </bean>
-                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN -->
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- MOUSE GRCm38 -->
+                    <property name="mapKey" value="35"/>
+                    <property name="speciesTypeKey" value="2"/>
+                    <property name="runIt" value="true"/>
+                </bean>
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- MOUSE GRCm39 -->
+                    <property name="mapKey" value="239"/>
+                    <property name="speciesTypeKey" value="2"/>
+                    <property name="runIt" value="true"/>
+                </bean>
+
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN GRCh37 -->
                     <property name="mapKey" value="17"/>
                     <property name="dbSnpBuild" value="dbSnp138"/>
                     <property name="speciesTypeKey" value="1"/>
                     <property name="runIt" value="true"/>
                 </bean>
-                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN -->
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- HUMAN GRCh38-->
                     <property name="mapKey" value="38"/>
                     <property name="dbSnpBuild" value="dbSnp147"/>
                     <property name="speciesTypeKey" value="1"/>
                     <property name="runIt" value="true"/>
                 </bean>
+
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG -->
                     <property name="mapKey" value="631"/>
                     <property name="dbSnpBuild" value="dbSnp151"/>
                     <property name="speciesTypeKey" value="6"/>
                     <property name="runIt" value="true"/>
                 </bean>
-				<!-- BONOBO 
-                <bean class="edu.mcw.rgd.pipelines.RunInfo">
-                    <property name="mapKey" value="511"/>
-                    <property name="dbSnpBuild" value="dbSnp146"/>
-                    <property name="speciesTypeKey" value="5"/>
+
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- PIG Sscrofa10.2 -->
+                    <property name="mapKey" value="910"/>
+                    <property name="speciesTypeKey" value="9"/>
                     <property name="runIt" value="true"/>
                 </bean>
-				-->
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- PIG Sscrofa11.1 -->
+                    <property name="mapKey" value="911"/>
+                    <property name="speciesTypeKey" value="9"/>
+                    <property name="runIt" value="true"/>
+                </bean>
+
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- GREEN MONKEY ChlSab1.1 -->
+                    <property name="mapKey" value="1311"/>
+                    <property name="speciesTypeKey" value="13"/>
+                    <property name="runIt" value="true"/>
+                </bean>
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- GREEN MONKEY Vero_WHO_p1.0 -->
+                    <property name="mapKey" value="1313"/>
+                    <property name="speciesTypeKey" value="13"/>
+                    <property name="runIt" value="true"/>
+                </bean>
             </list>
         </property>
     </bean>
