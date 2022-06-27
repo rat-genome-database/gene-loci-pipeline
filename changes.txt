@@ -1,3 +1,6 @@
+Jun 27, 2022
+  upgraded log4j to avoid zero day exploit
+
 Mar 29, 2022
   removed obsolete property 'variantTable'
   added mouse, pig and green monkey assemblies for processing
