@@ -2,13 +2,13 @@
 #
 . /etc/profile
 
-APPHOME=/home/rgddata/pipelines/GeneLociPipeline
+APPHOME=/home/rgddata/pipelines/gene-loci-pipeline
 cd $APPHOME
 
 SERVER=`hostname -s | tr '[a-z]' '[A-Z]'`
 EMAIL_LIST=mtutaj@mcw.edu
 if [ "$SERVER" = "REED" ]; then
-  EMAIL_LIST=rgd.developers@mcw.edu
+  EMAIL_LIST=rgd.devops@mcw.edu
 fi
 
 

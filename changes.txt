@@ -1,3 +1,6 @@
+Jul 05, 2022
+  renamed distro to 'gene-loci-pipeline'
+
 Jun 27, 2022
   upgraded log4j to avoid zero day exploit
 

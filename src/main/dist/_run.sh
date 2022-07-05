@@ -2,7 +2,7 @@
 #
 
 . /etc/profile
-APPNAME=GeneLociPipeline
+APPNAME="gene-loci-pipeline"
 SERVER=`hostname -s | tr '[a-z]' '[A-Z]'`
 
 APPDIR=/home/rgddata/pipelines/$APPNAME
