@@ -1,3 +1,6 @@
+Feb 13, 2023
+  updated build.gradle to be gradle 6.x + compatible
+
 Jul 05, 2022
   renamed distro to 'gene-loci-pipeline'
 
