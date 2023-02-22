@@ -63,6 +63,7 @@ public class GeneLociPipeline {
 
         long time2 = System.currentTimeMillis();
         log.info("gene loci pipeline complete: " + Utils.formatElapsedTime(time1, time2));
+        log.info("====");
     }
 
     public void run(RunInfo info) throws Exception {
@@ -172,7 +173,7 @@ public class GeneLociPipeline {
             finishWriteLoci();
 
             long timeUpdatePos2 = System.currentTimeMillis();
-            log.info(" complete CHR "+chromosome+";  "+Utils.formatElapsedTime(timeUpdatePos1, timeUpdatePos2));
+            log.debug(" complete CHR "+chromosome+";  "+Utils.formatElapsedTime(timeUpdatePos1, timeUpdatePos2));
         }
 
         long time2 = System.currentTimeMillis();
