@@ -73,10 +73,6 @@ public class GeneLociPipeline {
 
         initLociForVariants(info.getMapKey());
 
-        // we do not create positions in GENE_LOCI fro DB_SNP for human, because that will be immensely huge
-        if( info.getSpeciesTypeKey()==SpeciesType.RAT ) {
-            initLociForDbSnpVariants(info.getMapKey(), info.getDbSnpBuild());
-        }
         removeDuplicateLoci(info.getMapKey());
 
         long time1 = System.currentTimeMillis();
@@ -344,12 +340,6 @@ public class GeneLociPipeline {
 
         Connection conn = DataSourceFactory.getInstance().getCarpeNovoDataSource().getConnection();
 
-        // query for old variant table structure
-        //  "SELECT chromosome,start_pos FROM "+variantTable+
-        //  "  WHERE sample_id IN(SELECT sample_id FROM sample WHERE patient_id IN(SELECT patient_id FROM patient WHERE map_key=?)) "+
-        //  "MINUS "+
-        //  "SELECT chromosome,pos FROM GENE_LOCI WHERE map_key=?");
-
         PreparedStatement ps = conn.prepareStatement(
             "SELECT chromosome,start_pos FROM variant_map_data WHERE map_key=? "+
             "MINUS "+
@@ -369,43 +359,6 @@ public class GeneLociPipeline {
         dao.executeBatch(su);
 
         log.info("  done initializing loci for variants: "+cnt+", elapsed "+Utils.formatElapsedTime(time0, System.currentTimeMillis()));
-    }
-
-    void initLociForDbSnpVariants(int mapKey, String dbSnpBuild) throws Exception {
-
-        log.info("initializing loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
-
-        String sql =
-        "INSERT INTO gene_loci (map_key,chromosome,pos) "+
-        "VALUES(?,?,?) ";
-
-        BatchSqlUpdate su = new BatchSqlUpdate(DataSourceFactory.getInstance().getDataSource(), sql,
-                new int[]{Types.INTEGER, Types.VARCHAR, Types.INTEGER});
-        su.compile();
-
-        Connection conn = DataSourceFactory.getInstance().getDataSource().getConnection();
-        PreparedStatement ps = conn.prepareStatement(
-            "SELECT chromosome,position FROM db_snp WHERE map_key=? AND source=? "+
-            "MINUS "+
-            "SELECT chromosome,pos FROM GENE_LOCI WHERE map_key=?");
-        ps.setInt(1, mapKey);
-        ps.setString(2, dbSnpBuild);
-        ps.setInt(3, mapKey);
-
-        long rowCount = 0;
-        ResultSet rs = ps.executeQuery();
-        while ( rs.next() ) {
-            su.update(mapKey, rs.getString(1), rs.getInt(2));
-            rowCount++;
-
-            if( rowCount%100000==1 )
-                log.info("init_loci "+rowCount);
-        }
-        conn.close();
-
-        dao.executeBatch(su);
-
-        log.info(rowCount+" inserted loci for db_snp variants for map_key="+mapKey+" "+dbSnpBuild);
     }
 
     void removeDuplicateLoci(int mapKey) throws Exception {

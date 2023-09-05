@@ -8,7 +8,6 @@ package edu.mcw.rgd.pipelines;
 public class RunInfo {
 
     private int mapKey;
-    private String dbSnpBuild;
     private int speciesTypeKey;
     private boolean runIt;
 
@@ -19,14 +18,6 @@ public class RunInfo {
 
     public void setMapKey(int mapKey) {
         this.mapKey = mapKey;
-    }
-
-    public String getDbSnpBuild() {
-        return dbSnpBuild;
-    }
-
-    public void setDbSnpBuild(String dbSnpBuild) {
-        this.dbSnpBuild = dbSnpBuild;
     }
 
     public int getSpeciesTypeKey() {
