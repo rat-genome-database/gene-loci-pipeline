@@ -1,3 +1,6 @@
+Oct 31, 2023
+  updated to java 17
+
 Sep 01, 2023
   cleanup: removed obsolete code referencing obsolete DB_SNP table
 
