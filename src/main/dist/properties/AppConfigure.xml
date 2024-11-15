@@ -53,12 +53,12 @@
                     <property name="runIt" value="true"/>
                 </bean>
 
-                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG -->
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG CanFam3.1  -->
                     <property name="mapKey" value="631"/>
                     <property name="speciesTypeKey" value="6"/>
                     <property name="runIt" value="true"/>
                 </bean>
-                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG -->
+                <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- DOG ROS_Cfam_1.0  -->
                     <property name="mapKey" value="634"/>
                     <property name="speciesTypeKey" value="6"/>
                     <property name="runIt" value="true"/>
