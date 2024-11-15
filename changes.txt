@@ -1,3 +1,6 @@
+Nov 15, 2024
+  Added new dog assembly, 634
+
 Nov 28, 2023
   updated dependencies
 
