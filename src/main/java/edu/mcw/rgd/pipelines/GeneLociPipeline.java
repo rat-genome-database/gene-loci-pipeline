@@ -181,12 +181,13 @@ public class GeneLociPipeline {
 
         long time1 = System.currentTimeMillis();
 
-        String sql =
-        "select m.rgd_id,m.start_pos,m.stop_pos,g.gene_symbol,g.gene_type_lc "+
-        "from genes g,rgd_ids r,maps_data m "+
-        "where g.rgd_id=r.rgd_id and r.object_key=1 and r.object_status='ACTIVE' and r.species_type_key=? "+
-        "and m.rgd_id=g.rgd_id and m.map_key=? and chromosome=? "+
-        "order by m.start_pos";
+        String sql = """
+            SELECT m.rgd_id,m.start_pos,m.stop_pos,g.gene_symbol,g.gene_type_lc
+            FROM genes g,rgd_ids r,maps_data m
+            WHERE g.rgd_id=r.rgd_id AND r.object_key=1 AND r.object_status='ACTIVE' AND r.species_type_key=?
+              AND m.rgd_id=g.rgd_id AND m.map_key=? AND chromosome=?
+            ORDER BY m.start_pos
+            """;
 
         List<GeneData> geneDatas = new ArrayList<>();
 
