@@ -3,14 +3,15 @@ package edu.mcw.rgd.pipelines;
 import edu.mcw.rgd.dao.DataSourceFactory;
 import edu.mcw.rgd.dao.impl.MapDAO;
 import edu.mcw.rgd.datamodel.SpeciesType;
+import edu.mcw.rgd.process.MemoryMonitor;
 import edu.mcw.rgd.process.Utils;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.object.BatchSqlUpdate;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -24,11 +25,18 @@ import java.util.Map;
 public class GeneLociPipeline {
 
     Logger log = LogManager.getLogger("core");
+    Logger logDuplicates = LogManager.getLogger("duplicates");
+    Logger logInserted = LogManager.getLogger("inserted");
+    Logger logDeleted = LogManager.getLogger("deleted");
 
     private String version;
 
     MapDAO dao = new MapDAO();
     private List<RunInfo> runList;
+    private int deleteCount;
+    private int duplicateCount;
+    private int insertCount;
+    private int unchangedCount;
 
     public static void main(String[] args) throws Exception {
 
@@ -37,12 +45,23 @@ public class GeneLociPipeline {
         GeneLociPipeline importer = (GeneLociPipeline) (bf.getBean("importer"));
 
         int mapKey = 0;
-        if( args.length>0 ) {
-            if( args[0].startsWith("--mapKey=") ) {
-                mapKey = Integer.parseInt(args[0].substring(9));
+        boolean cleanDuplicates = false;
+        for( String arg: args ) {
+            if( arg.startsWith("--mapKey=") ) {
+                mapKey = Integer.parseInt(arg.substring(9));
+            } else if( arg.equals("--cleanDuplicates") ) {
+                cleanDuplicates = true;
             }
         }
-        importer.run(mapKey);
+
+        if( cleanDuplicates ) {
+            if( mapKey == 0 ) {
+                throw new Exception("--mapKey is mandatory when using --cleanDuplicates");
+            }
+            importer.cleanDuplicates(mapKey);
+        } else {
+            importer.run(mapKey);
+        }
     }
 
     public void run(int mapKey) throws Exception {
@@ -71,9 +90,13 @@ public class GeneLociPipeline {
         String speciesName = SpeciesType.getCommonName(info.getSpeciesTypeKey());
         log.info(speciesName+" START   map_key="+info.getMapKey());
 
-        initLociForVariants(info.getMapKey());
+        deleteCount = 0;
+        duplicateCount = 0;
+        insertCount = 0;
+        unchangedCount = 0;
 
-        removeDuplicateLoci(info.getMapKey());
+        MemoryMonitor memoryMonitor = new MemoryMonitor();
+        memoryMonitor.start();
 
         long time1 = System.currentTimeMillis();
 
@@ -87,6 +110,11 @@ public class GeneLociPipeline {
 
             long timeUpdatePos1 = System.currentTimeMillis();
 
+            // load existing gene_loci data for this chromosome
+            insertedKeys.clear();
+            Set<String> existingLoci = loadExistingLoci(info.getMapKey(), chromosome);
+
+            // compute new loci
             List<GeneData> geneDatas = processChromosome(chromosome, info.getMapKey(), info.getSpeciesTypeKey());
             int gdi = 0;
 
@@ -131,7 +159,7 @@ public class GeneLociPipeline {
                         if( locus.genicStatus.equals("intergenic") )
                             locus.geneSymbols += "|" + addedGeneSymbols;
                     }
-                    writeLoci(loci);
+                    collectLoci(loci);
                 }
 
                 // write gene loc entry
@@ -154,9 +182,6 @@ public class GeneLociPipeline {
                     }
                     loci.add(locus);
                 }
-
-                if( pos%1000000==0 )
-                    log.debug("processing chr"+chromosome+" at pos "+pos);
             }
 
             // update any intergenic loci
@@ -165,21 +190,38 @@ public class GeneLociPipeline {
                 if( locus.genicStatus.equals("intergenic") )
                     locus.geneSymbols += "|";
             }
-            writeLoci(loci);
-            finishWriteLoci();
+            collectLoci(loci);
+            int insertedBefore = insertCount;
+            int unchangedBefore = unchangedCount;
+            flushLoci(existingLoci);
+
+            // delete obsolete rows that remain in existingLoci (not matched by new data)
+            int deleted = deleteObsoleteLoci(info.getMapKey(), chromosome, existingLoci);
+            deleteCount += deleted;
 
             long timeUpdatePos2 = System.currentTimeMillis();
-            log.debug(" complete CHR "+chromosome+";  "+Utils.formatElapsedTime(timeUpdatePos1, timeUpdatePos2));
+            log.debug(" complete CHR "+chromosome
+                    +";  inserted="+Utils.formatThousands(insertCount - insertedBefore)
+                    +";  unchanged="+Utils.formatThousands(unchangedCount - unchangedBefore)
+                    +";  deleted="+Utils.formatThousands(deleted)
+                    +";  "+Utils.formatElapsedTime(timeUpdatePos1, timeUpdatePos2));
+            log.debug("   "+memoryMonitor.getSummary());
         }
 
         long time2 = System.currentTimeMillis();
+        log.info(speciesName+" map_key="+info.getMapKey()+"  rows inserted: "+Utils.formatThousands(insertCount)
+                +"  unchanged: "+Utils.formatThousands(unchangedCount)
+                +"  deleted: "+Utils.formatThousands(deleteCount));
+        if( duplicateCount > 0 ) {
+            log.info(speciesName+" duplicates skipped for map_key="+info.getMapKey()+": "+Utils.formatThousands(duplicateCount));
+        }
+        memoryMonitor.stop();
+        log.info(memoryMonitor.getSummary());
         log.info(speciesName+" Finished import "+"; "+Utils.formatElapsedTime(time1, time2));
         log.info("");
     }
 
     public List<GeneData> processChromosome(String chr, int mapKey, int speciesType) throws Exception {
-
-        long time1 = System.currentTimeMillis();
 
         String sql = """
             SELECT m.rgd_id,m.start_pos,m.stop_pos,g.gene_symbol,g.gene_type_lc
@@ -208,19 +250,22 @@ public class GeneLociPipeline {
                 geneDatas.add(data);
             }
         }
-        long time2 = System.currentTimeMillis();
-        log.debug("   loaded gene positions on chr "+chr+"; "+Utils.formatElapsedTime(time1, time2));
+        log.debug("   loaded gene positions on chr "+chr+" ="+geneDatas.size());
 
         return geneDatas;
     }
 
     Set<Integer> getPosForVariants(String chr, int mapKey) throws Exception {
 
-        String sql = "SELECT pos FROM gene_loci WHERE chromosome=? AND map_key=?";
+        String sql = """
+            SELECT start_pos FROM variant_map_data
+            WHERE chromosome=? AND map_key=?
+            """;
 
         Set<Integer> set = new HashSet<>();
+        DataSource ds = DataSourceFactory.getInstance().getCarpeNovoDataSource();
 
-        try(Connection conn = dao.getConnection()) {
+        try(Connection conn = ds.getConnection()) {
 
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, chr);
@@ -234,42 +279,43 @@ public class GeneLociPipeline {
         return set;
     }
 
-    List<GeneLocus> loci2 = new ArrayList<>(100000);
+    /**
+     * Load existing gene_loci rows for given map_key and chromosome.
+     * Returns a set of "pos|gene_symbols_lc" keys.
+     */
+    Set<String> loadExistingLoci(int mapKey, String chromosome) throws Exception {
 
-    void writeLociInBulk(List<GeneLocus> loci) throws Exception {
+        String sql = """
+            SELECT pos, gene_symbols_lc FROM gene_loci
+            WHERE map_key=? AND chromosome=?
+            """;
 
-        String sql1 =
-        "UPDATE gene_loci SET genic_status=?,gene_symbols=?,gene_symbols_lc=? WHERE map_key=? AND chromosome=? AND pos=? ";
+        Set<String> set = new HashSet<>();
 
-        BatchSqlUpdate su1 = new BatchSqlUpdate(DataSourceFactory.getInstance().getDataSource(), sql1,
-                new int[]{Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.INTEGER});
-        su1.compile();
+        try(Connection conn = dao.getConnection()) {
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, mapKey);
+            ps.setString(2, chromosome);
 
-
-        String sql2 =
-        "INSERT INTO gene_loci (genic_status,gene_symbols,gene_symbols_lc,map_key,chromosome,pos) "+
-        "VALUES(?,?,?,?,?,?)";
-
-        BatchSqlUpdate su2 = new BatchSqlUpdate(DataSourceFactory.getInstance().getDataSource(), sql2,
-                new int[]{Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.INTEGER});
-        su2.compile();
-
-        for( GeneLocus locus: loci ) {
-            if( locus.insertFlag )
-                su2.update(locus.genicStatus, locus.geneSymbols, locus.geneSymbols.toLowerCase(), locus.mapKey, locus.chromosome, locus.pos);
-            else
-                su1.update(locus.genicStatus, locus.geneSymbols, locus.geneSymbols.toLowerCase(), locus.mapKey, locus.chromosome, locus.pos);
-            //System.out.println("WRITE "+locus.mapKey+"|"+locus.chromosome+"|"+locus.pos+"|"+locus.genicStatus+"|"+locus.geneSymbols);
+            ResultSet rs = ps.executeQuery();
+            while( rs.next() ) {
+                int pos = rs.getInt(1);
+                String geneSymbolsLc = rs.getString(2);
+                set.add(pos + "|" + geneSymbolsLc);
+            }
         }
-        dao.executeBatch(su1);
-        dao.executeBatch(su2);
-
-        loci.clear();
+        log.debug("   loaded existing loci for chr "+chromosome+": "+set.size());
+        return set;
     }
 
-    void writeLoci(List<GeneLocus> loci) throws Exception {
+    List<GeneLocus> loci2 = new ArrayList<>(100000);
+    Set<String> insertedKeys = new HashSet<>();
 
-        // add all loci to loci2 table expanding every '*' entry
+    /**
+     * Collect loci into buffer, expanding '*' entries into separate rows.
+     */
+    void collectLoci(List<GeneLocus> loci) throws CloneNotSupportedException {
+
         for( GeneLocus locus: loci ) {
 
             if( !locus.geneSymbols.contains("*") ) {
@@ -302,10 +348,6 @@ public class GeneLociPipeline {
         }
 
         loci.clear();
-
-        if( loci2.size()>50000 ) {
-            writeLociInBulk(loci2);
-        }
     }
 
     void expandSymbolsInLocus(GeneLocus locus, String geneSymbols, String prefix, String suffix) throws CloneNotSupportedException {
@@ -319,72 +361,147 @@ public class GeneLociPipeline {
         for( int i=1; i<symbols.length; i++ ) {
             GeneLocus locusClone = (GeneLocus) locus.clone();
             locusClone.geneSymbols = prefix + symbols[i] + suffix;
-            locusClone.insertFlag = true;
             loci2.add(locusClone);
         }
     }
 
-    void finishWriteLoci() throws Exception {
-        writeLociInBulk(loci2);
-    }
+    /**
+     * Flush buffered loci: QC against existing data, insert only new rows.
+     * Rows matched in existingLoci are removed from it (so what remains is obsolete).
+     */
+    void flushLoci(Set<String> existingLoci) throws Exception {
 
-    void initLociForVariants(int mapKey) throws Exception {
+        String sqlInsert = """
+            INSERT INTO gene_loci (genic_status, gene_symbols, gene_symbols_lc, map_key, chromosome, pos)
+            VALUES(?, ?, ?, ?, ?, ?)
+            """;
 
-        long time0 = System.currentTimeMillis();
-        log.info("  initializing loci for variants");
+        for( GeneLocus locus: loci2 ) {
 
-        String sql = "INSERT INTO gene_loci (map_key,chromosome,pos) VALUES(?,?,?)";
+            // check for duplicates within the same run first
+            String key = locus.mapKey + "|" + locus.chromosome + "|" + locus.pos + "|" + locus.geneSymbols;
+            if( !insertedKeys.add(key) ) {
+                duplicateCount++;
+                logDuplicates.debug("DUPLICATE: " + key + "|" + locus.genicStatus);
+                continue;
+            }
 
-        BatchSqlUpdate su = new BatchSqlUpdate(DataSourceFactory.getInstance().getDataSource(), sql,
-                new int[]{Types.INTEGER, Types.VARCHAR, Types.INTEGER});
-        su.compile();
+            // check if this locus already exists in the database
+            String existingKey = locus.pos + "|" + locus.geneSymbols.toLowerCase();
+            if( existingLoci.remove(existingKey) ) {
+                unchangedCount++;
+                continue;
+            }
 
-        Connection conn = DataSourceFactory.getInstance().getCarpeNovoDataSource().getConnection();
-
-        PreparedStatement ps = conn.prepareStatement(
-            "SELECT chromosome,start_pos FROM variant_map_data WHERE map_key=? "+
-            "MINUS "+
-            "SELECT chromosome,pos FROM GENE_LOCI WHERE map_key=?");
-
-        ps.setInt(1, mapKey);
-        ps.setInt(2, mapKey);
-        ResultSet rs = ps.executeQuery();
-
-        int cnt = 0;
-        while ( rs.next() ) {
-            su.update(mapKey, rs.getString(1), rs.getInt(2));
-            cnt++;
+            dao.update(sqlInsert, locus.genicStatus, locus.geneSymbols, locus.geneSymbols.toLowerCase(),
+                    locus.mapKey, locus.chromosome, locus.pos);
+            insertCount++;
+            logInserted.debug(locus.mapKey + "|" + locus.chromosome + "|" + locus.pos + "|" + locus.genicStatus + "|" + locus.geneSymbols);
         }
-        conn.close();
 
-        dao.executeBatch(su);
-
-        log.info("  done initializing loci for variants: "+cnt+", elapsed "+Utils.formatElapsedTime(time0, System.currentTimeMillis()));
+        loci2.clear();
     }
 
-    void removeDuplicateLoci(int mapKey) throws Exception {
-        String sql =
-        "DELETE FROM gene_loci WHERE rowid IN("+
-        " SELECT rid FROM ( "+
-        "  SELECT rid,rank() OVER(PARTITION BY chromosome,pos ORDER BY rid) AS rank"+
-        "  FROM ("+
-        "    SELECT chromosome,pos,rowid as rid FROM gene_loci l"+
-        "    WHERE (map_key,chromosome,pos) IN("+
-        "       SELECT ? map_key,chromosome,pos"+
-        "       FROM GENE_LOCI l"+
-        "       WHERE MAP_KEY=?"+
-        "       GROUP BY CHROMOSOME,POS"+
-        "       HAVING COUNT(*)>1 )"+
-        "  ) x"+
-        " ) WHERE rank>1)";
+    /**
+     * Delete obsolete rows that were not matched by new data.
+     * @param existingLoci remaining keys (pos|gene_symbols_lc) not seen in new data
+     */
+    int deleteObsoleteLoci(int mapKey, String chromosome, Set<String> existingLoci) throws Exception {
 
-        Connection conn = DataSourceFactory.getInstance().getDataSource().getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ps.setInt(1, mapKey);
-        ps.setInt(2, mapKey);
-        int rowCount = ps.executeUpdate();
-        log.info("removeDuplicateLoci for map_key=" + mapKey+" rows:"+rowCount);
-        conn.close();
+        if( existingLoci.isEmpty() ) {
+            return 0;
+        }
+
+        String sqlDelete = """
+            DELETE FROM gene_loci
+            WHERE map_key=? AND chromosome=? AND pos=? AND gene_symbols_lc=?
+            """;
+
+        int deleted = 0;
+        for( String key: existingLoci ) {
+            int barPos = key.indexOf('|');
+            int pos = Integer.parseInt(key.substring(0, barPos));
+            String geneSymbolsLc = key.substring(barPos + 1);
+
+            dao.update(sqlDelete, mapKey, chromosome, pos, geneSymbolsLc);
+            deleted++;
+            logDeleted.debug(mapKey + "|" + chromosome + "|" + pos + "|" + geneSymbolsLc);
+        }
+        return deleted;
+    }
+
+    void cleanDuplicates(int mapKey) throws Exception {
+
+        log.info(getVersion());
+        log.info("   "+dao.getConnectionInfo());
+        log.info("   cleanDuplicates for map_key="+mapKey);
+
+        long time1 = System.currentTimeMillis();
+
+        // query to find duplicate rowids (keeps one, returns the rest)
+        String sqlSelect = """
+            SELECT rowid, map_key, chromosome, pos, gene_symbols, gene_symbols_lc
+            FROM gene_loci
+            WHERE map_key=? AND chromosome=? AND rowid NOT IN(
+                SELECT MIN(rowid)
+                FROM gene_loci
+                WHERE map_key=? AND chromosome=?
+                GROUP BY map_key, chromosome, pos, gene_symbols
+            )
+            """;
+
+        String sqlDelete = """
+            DELETE FROM gene_loci WHERE rowid=?
+            """;
+
+        Map<String,Integer> chrSizes = dao.getChromosomeSizes(mapKey);
+        List<String> chromosomes = new ArrayList<>(chrSizes.keySet());
+        Collections.sort(chromosomes);
+
+        int totalDeleted = 0;
+
+        for( String chromosome: chromosomes ) {
+
+            int chrDeleted = 0;
+
+            try(Connection conn = dao.getConnection()) {
+                PreparedStatement ps = conn.prepareStatement(sqlSelect);
+                ps.setInt(1, mapKey);
+                ps.setString(2, chromosome);
+                ps.setInt(3, mapKey);
+                ps.setString(4, chromosome);
+
+                ResultSet rs = ps.executeQuery();
+                while( rs.next() ) {
+                    String rowid = rs.getString(1);
+                    int pos = rs.getInt(4);
+                    String geneSymbols = rs.getString(5);
+                    String geneSymbolsLc = rs.getString(6);
+
+                    logDuplicates.debug("DUPLICATE: map_key=" + mapKey + "|chr=" + chromosome
+                            + "|pos=" + pos + "|gene_symbols=" + geneSymbols);
+
+                    // delete this duplicate row
+                    try(PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
+                        psDel.setString(1, rowid);
+                        psDel.executeUpdate();
+                    }
+                    chrDeleted++;
+                }
+            }
+
+            if( chrDeleted > 0 ) {
+                log.info("   chr " + chromosome + ": deleted " + Utils.formatThousands(chrDeleted) + " duplicates");
+                logDuplicates.debug("chr " + chromosome + ": deleted " + Utils.formatThousands(chrDeleted) + " duplicates");
+            }
+            totalDeleted += chrDeleted;
+        }
+
+        long time2 = System.currentTimeMillis();
+        log.info("cleanDuplicates for map_key=" + mapKey + ": total deleted " + Utils.formatThousands(totalDeleted)
+                + ";  " + Utils.formatElapsedTime(time1, time2));
+        logDuplicates.debug("cleanDuplicates for map_key=" + mapKey + ": total deleted " + Utils.formatThousands(totalDeleted));
+        log.info("====");
     }
 
     public void setVersion(String version) {
@@ -416,7 +533,6 @@ public class GeneLociPipeline {
         public int pos;
         public String genicStatus;
         public String geneSymbols;
-        public boolean insertFlag;
 
         @Override
         public Object clone() throws CloneNotSupportedException {
@@ -424,4 +540,3 @@ public class GeneLociPipeline {
         }
     }
 }
-
