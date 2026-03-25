@@ -62,10 +62,15 @@ public class GeneLociPipeline {
             cleaner.setVersion(importer.getVersion());
 
             if( mapKeyStr.equalsIgnoreCase("all") ) {
+                List<Integer> mapKeys = new ArrayList<>();
                 for( RunInfo info: importer.getRunList() ) {
                     if( info.isRunIt() ) {
-                        cleaner.run(info.getMapKey());
+                        mapKeys.add(info.getMapKey());
                     }
+                }
+                Collections.shuffle(mapKeys);
+                for( int mapKey: mapKeys ) {
+                    cleaner.run(mapKey);
                 }
             } else {
                 cleaner.run(Integer.parseInt(mapKeyStr));
