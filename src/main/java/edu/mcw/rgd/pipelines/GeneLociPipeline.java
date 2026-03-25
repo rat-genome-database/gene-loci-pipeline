@@ -44,22 +44,34 @@ public class GeneLociPipeline {
         new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new FileSystemResource("properties/AppConfigure.xml"));
         GeneLociPipeline importer = (GeneLociPipeline) (bf.getBean("importer"));
 
-        int mapKey = 0;
+        String mapKeyStr = null;
         boolean cleanDuplicates = false;
         for( String arg: args ) {
             if( arg.startsWith("--mapKey=") ) {
-                mapKey = Integer.parseInt(arg.substring(9));
+                mapKeyStr = arg.substring(9);
             } else if( arg.equals("--cleanDuplicates") ) {
                 cleanDuplicates = true;
             }
         }
 
         if( cleanDuplicates ) {
-            if( mapKey == 0 ) {
+            if( mapKeyStr == null ) {
                 throw new Exception("--mapKey is mandatory when using --cleanDuplicates");
             }
-            importer.cleanDuplicates(mapKey);
+            CleanDuplicates cleaner = (CleanDuplicates) (bf.getBean("cleanDuplicates"));
+            cleaner.setVersion(importer.getVersion());
+
+            if( mapKeyStr.equalsIgnoreCase("all") ) {
+                for( RunInfo info: importer.getRunList() ) {
+                    if( info.isRunIt() ) {
+                        cleaner.run(info.getMapKey());
+                    }
+                }
+            } else {
+                cleaner.run(Integer.parseInt(mapKeyStr));
+            }
         } else {
+            int mapKey = mapKeyStr != null ? Integer.parseInt(mapKeyStr) : 0;
             importer.run(mapKey);
         }
     }
@@ -425,83 +437,9 @@ public class GeneLociPipeline {
 
             dao.update(sqlDelete, mapKey, chromosome, pos, geneSymbolsLc);
             deleted++;
-            logDeleted.debug(mapKey + "|" + chromosome + "|" + pos + "|" + geneSymbolsLc);
+            logDeleted.debug("OBSOLETE: " + mapKey + "|" + chromosome + "|" + pos + "|" + geneSymbolsLc);
         }
         return deleted;
-    }
-
-    void cleanDuplicates(int mapKey) throws Exception {
-
-        log.info(getVersion());
-        log.info("   "+dao.getConnectionInfo());
-        log.info("   cleanDuplicates for map_key="+mapKey);
-
-        long time1 = System.currentTimeMillis();
-
-        // query to find duplicate rowids (keeps one, returns the rest)
-        String sqlSelect = """
-            SELECT rowid, map_key, chromosome, pos, gene_symbols, gene_symbols_lc
-            FROM gene_loci
-            WHERE map_key=? AND chromosome=? AND rowid NOT IN(
-                SELECT MIN(rowid)
-                FROM gene_loci
-                WHERE map_key=? AND chromosome=?
-                GROUP BY map_key, chromosome, pos, gene_symbols
-            )
-            """;
-
-        String sqlDelete = """
-            DELETE FROM gene_loci WHERE rowid=?
-            """;
-
-        Map<String,Integer> chrSizes = dao.getChromosomeSizes(mapKey);
-        List<String> chromosomes = new ArrayList<>(chrSizes.keySet());
-        Collections.sort(chromosomes);
-
-        int totalDeleted = 0;
-
-        for( String chromosome: chromosomes ) {
-
-            int chrDeleted = 0;
-
-            try(Connection conn = dao.getConnection()) {
-                PreparedStatement ps = conn.prepareStatement(sqlSelect);
-                ps.setInt(1, mapKey);
-                ps.setString(2, chromosome);
-                ps.setInt(3, mapKey);
-                ps.setString(4, chromosome);
-
-                ResultSet rs = ps.executeQuery();
-                while( rs.next() ) {
-                    String rowid = rs.getString(1);
-                    int pos = rs.getInt(4);
-                    String geneSymbols = rs.getString(5);
-                    String geneSymbolsLc = rs.getString(6);
-
-                    logDuplicates.debug("DUPLICATE: map_key=" + mapKey + "|chr=" + chromosome
-                            + "|pos=" + pos + "|gene_symbols=" + geneSymbols);
-
-                    // delete this duplicate row
-                    try(PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
-                        psDel.setString(1, rowid);
-                        psDel.executeUpdate();
-                    }
-                    chrDeleted++;
-                }
-            }
-
-            if( chrDeleted > 0 ) {
-                log.info("   chr " + chromosome + ": deleted " + Utils.formatThousands(chrDeleted) + " duplicates");
-                logDuplicates.debug("chr " + chromosome + ": deleted " + Utils.formatThousands(chrDeleted) + " duplicates");
-            }
-            totalDeleted += chrDeleted;
-        }
-
-        long time2 = System.currentTimeMillis();
-        log.info("cleanDuplicates for map_key=" + mapKey + ": total deleted " + Utils.formatThousands(totalDeleted)
-                + ";  " + Utils.formatElapsedTime(time1, time2));
-        logDuplicates.debug("cleanDuplicates for map_key=" + mapKey + ": total deleted " + Utils.formatThousands(totalDeleted));
-        log.info("====");
     }
 
     public void setVersion(String version) {

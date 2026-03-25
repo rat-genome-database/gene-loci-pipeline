@@ -1,13 +1,14 @@
-Mar 24, 2026
-  replaced batch operations with QC-based insert/delete approach:
-    load existing loci, diff against variant_map_data, insert new, delete obsolete
+Mar 25, 2026
+  extracted CleanDuplicates into separate class with position-scan strategy for large tables
+  added --mapKey=all support and cleanDuplicates.sh script
+
+Mar 23, 2026
+  prevent duplicate inserts into GENE_LOCI table; log duplicates to duplicates.log
+  replaced batch operations with QC-based approach: load existing loci, diff, insert new, delete obsolete
   removed initLociForVariants, removeDuplicateLoci, and last_update_time dependency
-  use CarpeNovoDataSource for variant_map_data queries
-  added --cleanDuplicates option to remove duplicate rows from GENE_LOCI
-  fixed duplicate detection: check insertedKeys before existingLoci in flushLoci
-  added inserted.log, deleted.log, and duplicates.log for full audit trail
+  variant positions now read directly from variant_map_data
+  added inserted.log and deleted.log for full audit trail
   added summary counters for rows inserted, unchanged, deleted, and duplicates skipped
-  added per-chromosome counters to debug log with thousands-separator formatting
   added MemoryMonitor: per-mapKey summary and per-chromosome memory usage
   refactored SQL statements to use Java text blocks
   updated dependencies

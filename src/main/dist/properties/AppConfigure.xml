@@ -2,7 +2,7 @@
 
 <beans>
     <bean id="importer" class="edu.mcw.rgd.pipelines.GeneLociPipeline" >
-        <property name="version" value="gene-loci-pipeline   -- build Mar 23, 2026" />
+        <property name="version" value="gene-loci-pipeline   -- build Mar 25, 2026" />
         <property name="runList">
             <list >
                 <bean class="edu.mcw.rgd.pipelines.RunInfo"><!-- RAT GRCr8 -->
@@ -92,6 +92,10 @@
                 </bean>
             </list>
         </property>
+    </bean>
+
+    <bean id="cleanDuplicates" class="edu.mcw.rgd.pipelines.CleanDuplicates">
+        <property name="usePositionScan" value="true"/>
     </bean>
 
 </beans>
