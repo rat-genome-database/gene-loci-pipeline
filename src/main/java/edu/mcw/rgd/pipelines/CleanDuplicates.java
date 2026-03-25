@@ -1,6 +1,7 @@
 package edu.mcw.rgd.pipelines;
 
 import edu.mcw.rgd.dao.impl.MapDAO;
+import edu.mcw.rgd.process.MemoryMonitor;
 import edu.mcw.rgd.process.Utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,6 +42,9 @@ public class CleanDuplicates {
 
         long time1 = System.currentTimeMillis();
 
+        MemoryMonitor memoryMonitor = new MemoryMonitor();
+        memoryMonitor.start();
+
         Map<String, Integer> chrSizes = dao.getChromosomeSizes(mapKey);
         List<String> chromosomes = new ArrayList<>(chrSizes.keySet());
         Collections.shuffle(chromosomes);
@@ -55,8 +59,11 @@ public class CleanDuplicates {
             if (chrDeleted > 0) {
                 log.info("   chr " + chromosome + ": deleted " + Utils.formatThousands(chrDeleted) + " duplicates");
             }
+            log.info("   " + memoryMonitor.getSummary());
             totalDeleted += chrDeleted;
         }
+
+        memoryMonitor.stop();
 
         long time2 = System.currentTimeMillis();
         log.info("cleanDuplicates for map_key=" + mapKey + ": total deleted " + Utils.formatThousands(totalDeleted)
