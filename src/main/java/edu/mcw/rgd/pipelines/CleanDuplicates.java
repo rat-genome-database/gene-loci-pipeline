@@ -93,8 +93,9 @@ public class CleanDuplicates {
 
         int chrDeleted = 0;
 
-        try (Connection conn = dao.getConnection()) {
-            PreparedStatement ps = conn.prepareStatement(sqlSelect);
+        try (Connection conn = dao.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlSelect)) {
+
             ps.setInt(1, mapKey);
             ps.setString(2, chromosome);
             ps.setInt(3, mapKey);

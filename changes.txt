@@ -1,3 +1,7 @@
+Apr 16, 2026
+  added PreparedStatement to try-with-resources for proper resource cleanup
+  updated README.md
+
 Mar 25, 2026
   extracted CleanDuplicates into separate class with position-scan strategy for large tables
   added --mapKey=all support and cleanDuplicates.sh script

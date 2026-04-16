@@ -250,9 +250,9 @@ public class GeneLociPipeline {
 
         List<GeneData> geneDatas = new ArrayList<>();
 
-        try(Connection conn = dao.getConnection()) {
+        try(Connection conn = dao.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, speciesType);
             ps.setInt(2, mapKey);
             ps.setString(3, chr);
@@ -282,9 +282,9 @@ public class GeneLociPipeline {
         Set<Integer> set = new HashSet<>();
         DataSource ds = DataSourceFactory.getInstance().getCarpeNovoDataSource();
 
-        try(Connection conn = ds.getConnection()) {
+        try(Connection conn = ds.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, chr);
             ps.setInt(2, mapKey);
 
@@ -309,8 +309,9 @@ public class GeneLociPipeline {
 
         Set<String> set = new HashSet<>();
 
-        try(Connection conn = dao.getConnection()) {
-            PreparedStatement ps = conn.prepareStatement(sql);
+        try(Connection conn = dao.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setInt(1, mapKey);
             ps.setString(2, chromosome);
 
