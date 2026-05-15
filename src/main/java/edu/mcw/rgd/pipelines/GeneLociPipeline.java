@@ -123,6 +123,10 @@ public class GeneLociPipeline {
         List<String> chromosomes = new ArrayList<>(chrSizes.keySet());
         Collections.shuffle(chromosomes);
 
+        // per-chromosome scratch buffers; cleared at the start of each chromosome
+        List<GeneLocus> pendingInserts = new ArrayList<>(100000);
+        Set<String> insertedKeys = new HashSet<>();
+
         for( String chromosome: chromosomes ) {
 
             long timeUpdatePos1 = System.currentTimeMillis();
@@ -176,7 +180,7 @@ public class GeneLociPipeline {
                         if( locus.genicStatus.equals("intergenic") )
                             locus.geneSymbols += "|" + addedGeneSymbols;
                     }
-                    collectLoci(loci);
+                    collectLoci(loci, pendingInserts);
                 }
 
                 // write gene loc entry
@@ -207,10 +211,10 @@ public class GeneLociPipeline {
                 if( locus.genicStatus.equals("intergenic") )
                     locus.geneSymbols += "|";
             }
-            collectLoci(loci);
+            collectLoci(loci, pendingInserts);
             int insertedBefore = insertCount;
             int unchangedBefore = unchangedCount;
-            flushLoci(existingLoci);
+            flushLoci(existingLoci, pendingInserts, insertedKeys);
 
             // delete obsolete rows that remain in existingLoci (not matched by new data)
             int deleted = deleteObsoleteLoci(info.getMapKey(), chromosome, existingLoci);
@@ -326,25 +330,22 @@ public class GeneLociPipeline {
         return set;
     }
 
-    List<GeneLocus> loci2 = new ArrayList<>(100000);
-    Set<String> insertedKeys = new HashSet<>();
-
     /**
-     * Collect loci into buffer, expanding '*' entries into separate rows.
+     * Collect loci into the supplied buffer, expanding '*' entries into separate rows.
      */
-    void collectLoci(List<GeneLocus> loci) throws CloneNotSupportedException {
+    void collectLoci(List<GeneLocus> loci, List<GeneLocus> pendingInserts) throws CloneNotSupportedException {
 
         for( GeneLocus locus: loci ) {
 
             if( !locus.geneSymbols.contains("*") ) {
-                loci2.add(locus);
+                pendingInserts.add(locus);
             }
             else {
                 // CASE1: genic
                 // RCC1*SNHG3*SNHG3-RCC1
                 if( locus.genicStatus.equals("genic") ) {
 
-                    expandSymbolsInLocus(locus, locus.geneSymbols, "", "");
+                    expandSymbolsInLocus(locus, locus.geneSymbols, "", "", pendingInserts);
                 }
                 else {
                     // CASE2: intergenic - star after bar
@@ -353,13 +354,13 @@ public class GeneLociPipeline {
                     int starPos = locus.geneSymbols.indexOf('*');
                     if( starPos > barPos ) {
                         String prefix = locus.geneSymbols.substring(0, barPos+1);
-                        expandSymbolsInLocus(locus, locus.geneSymbols.substring(barPos+1), prefix, "");
+                        expandSymbolsInLocus(locus, locus.geneSymbols.substring(barPos+1), prefix, "", pendingInserts);
                     }
                     else {
                     // CASE3: intergenic - star before bar
                     // HOXC4*HOXC6*HOXC5|HOXC8
                         String suffix = locus.geneSymbols.substring(barPos);
-                        expandSymbolsInLocus(locus, locus.geneSymbols.substring(0, barPos), "", suffix);
+                        expandSymbolsInLocus(locus, locus.geneSymbols.substring(0, barPos), "", suffix, pendingInserts);
                     }
                 }
             }
@@ -368,18 +369,19 @@ public class GeneLociPipeline {
         loci.clear();
     }
 
-    void expandSymbolsInLocus(GeneLocus locus, String geneSymbols, String prefix, String suffix) throws CloneNotSupportedException {
+    void expandSymbolsInLocus(GeneLocus locus, String geneSymbols, String prefix, String suffix,
+                              List<GeneLocus> pendingInserts) throws CloneNotSupportedException {
 
         String[] symbols = geneSymbols.split("[*]");
 
         // add first locus
         locus.geneSymbols = prefix + symbols[0] + suffix;
-        loci2.add(locus);
+        pendingInserts.add(locus);
 
         for( int i=1; i<symbols.length; i++ ) {
             GeneLocus locusClone = (GeneLocus) locus.clone();
             locusClone.geneSymbols = prefix + symbols[i] + suffix;
-            loci2.add(locusClone);
+            pendingInserts.add(locusClone);
         }
     }
 
@@ -387,14 +389,14 @@ public class GeneLociPipeline {
      * Flush buffered loci: QC against existing data, insert only new rows.
      * Rows matched in existingLoci are removed from it (so what remains is obsolete).
      */
-    void flushLoci(Set<String> existingLoci) throws Exception {
+    void flushLoci(Set<String> existingLoci, List<GeneLocus> pendingInserts, Set<String> insertedKeys) throws Exception {
 
         String sqlInsert = """
             INSERT INTO gene_loci (genic_status, gene_symbols, gene_symbols_lc, map_key, chromosome, pos)
             VALUES(?, ?, ?, ?, ?, ?)
             """;
 
-        for( GeneLocus locus: loci2 ) {
+        for( GeneLocus locus: pendingInserts ) {
 
             // check for duplicates within the same run first
             String key = locus.mapKey + "|" + locus.chromosome + "|" + locus.pos + "|" + locus.geneSymbols;
@@ -417,7 +419,7 @@ public class GeneLociPipeline {
             logInserted.debug(locus.mapKey + "|" + locus.chromosome + "|" + locus.pos + "|" + locus.genicStatus + "|" + locus.geneSymbols);
         }
 
-        loci2.clear();
+        pendingInserts.clear();
     }
 
     /**
