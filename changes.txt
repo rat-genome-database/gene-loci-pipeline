@@ -1,3 +1,6 @@
+May 15, 2026
+  refactor: per-chromosome buffers (pendingInserts, insertedKeys) now scoped as locals instead of instance fields; updated dependencies
+
 Apr 16, 2026
   added PreparedStatement to try-with-resources for proper resource cleanup
   updated README.md
