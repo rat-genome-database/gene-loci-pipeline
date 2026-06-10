@@ -245,7 +245,7 @@ public class GeneLociPipeline {
     public List<GeneData> processChromosome(String chr, int mapKey, int speciesType) throws Exception {
 
         String sql = """
-            SELECT m.rgd_id,m.start_pos,m.stop_pos,g.gene_symbol,g.gene_type_lc
+            SELECT m.start_pos,m.stop_pos,g.gene_symbol
             FROM genes g,rgd_ids r,maps_data m
             WHERE g.rgd_id=r.rgd_id AND r.object_key=1 AND r.object_status='ACTIVE' AND r.species_type_key=?
               AND m.rgd_id=g.rgd_id AND m.map_key=? AND chromosome=?
@@ -264,10 +264,9 @@ public class GeneLociPipeline {
             ResultSet rs = ps.executeQuery();
             while( rs.next() ) {
                 GeneData data = new GeneData();
-                data.geneRgdId = rs.getInt(1);
-                data.geneSymbol = rs.getString(4);
-                data.startPos = rs.getInt(2);
-                data.stopPos = rs.getInt(3);
+                data.startPos = rs.getInt(1);
+                data.stopPos = rs.getInt(2);
+                data.geneSymbol = rs.getString(3);
                 geneDatas.add(data);
             }
         }
@@ -467,7 +466,6 @@ public class GeneLociPipeline {
     }
 
     class GeneData {
-        public int geneRgdId;
         public String geneSymbol;
         public int startPos;
         public int stopPos;

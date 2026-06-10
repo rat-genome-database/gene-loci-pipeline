@@ -1,3 +1,6 @@
+Jun 10, 2026
+  removed obsolete SnpInGeneCount module and dead code; updated dependencies
+
 May 15, 2026
   refactor: per-chromosome buffers (pendingInserts, insertedKeys) now scoped as locals instead of instance fields; updated dependencies
 
